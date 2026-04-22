@@ -36,7 +36,6 @@ Sem botões adicionais, mantendo o jogo acessível e direto.
 ---
 
 ## Technical approach
-O jogo será desenvolvido em Swift usando SpriteKit.
 
 O movimento será contínuo na horizontal, enquanto a gravidade será alterada diretamente durante o jogo.  
 Os obstáculos serão gerados ao longo do tempo e movem-se em direção ao jogador.  
