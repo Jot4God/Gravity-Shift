@@ -57,7 +57,7 @@ Para garantir que o projeto é realizável, o foco será:
 
 ---
 
-## 🛠️ Technical Setup
+## Technical Setup
 
 - **Language:** Swift  
 - **IDE:** Xcode  
