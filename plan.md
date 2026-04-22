@@ -18,16 +18,6 @@ Criar um jogo funcional e fluido que demonstre:
 
 ---
 
-## Core Idea
-Ao contrário de jogos tradicionais onde o jogador salta, em Gravity Shift a única ação possível é inverter a gravidade.
-
-Isto cria um sistema de controlo simples:
-- um único input
-- duas posições possíveis (chão / teto)
-- decisões baseadas em timing
-
----
-
 ## Game Flow
 1. O jogador inicia o jogo a partir do menu
 2. A personagem começa a mover-se automaticamente
@@ -45,28 +35,26 @@ Sem botões adicionais, mantendo o jogo acessível e direto.
 
 ---
 
-## Gameplay Systems
+## Technical approach
+O jogo será desenvolvido em Swift usando SpriteKit.
 
-### Movement
-- Deslocamento automático horizontal
-- Velocidade ajustável ao longo do tempo
+O movimento será contínuo na horizontal, enquanto a gravidade será alterada diretamente durante o jogo.  
+Os obstáculos serão gerados ao longo do tempo e movem-se em direção ao jogador.  
 
-### Gravity System
-- Alternância entre gravidade positiva e negativa
-- Aplicada diretamente no `physicsWorld`
+A deteção de colisões será feita através do sistema de física do SpriteKit.  
+A pontuação será baseada no tempo de sobrevivência.
 
-### Obstacles
-- Gerados continuamente
-- Posicionados no topo e na base
-- Movem-se em direção ao jogador
+---
 
-### Collision
-- Detetada através de `SKPhysicsBody`
-- Qualquer contacto com obstáculo resulta em Game Over
+## MVP scope
+Para garantir que o projeto é realizável, o foco será:
 
-### Scoring
-- Baseado no tempo de sobrevivência
-- Atualizado em tempo real
+- Mecânica de inversão de gravidade funcional  
+- Movimento automático do jogador  
+- Obstáculos simples (topo e base)  
+- Sistema de colisão com fim de jogo  
+- Pontuação básica  
+- Interface simples (iniciar jogo e reiniciar)
 
 ---
 
@@ -75,21 +63,3 @@ Sem botões adicionais, mantendo o jogo acessível e direto.
 - **Language:** Swift  
 - **IDE:** Xcode  
 - **Framework:** SpriteKit  
-
-### Key Components
-- GameScene → lógica principal
-- PlayerNode → comportamento do jogador
-- Obstacle System → geração e movimento
-- Physics Engine → colisões e gravidade
-
----
-
-##  Project Structure
-```text
-GameViewController.swift   — inicia o jogo
-GameScene.swift            — loop principal
-PlayerNode.swift           — jogador
-ObstacleSpawner.swift      — criação de obstáculos
-MenuScene.swift            — menu inicial
-GameOverScene.swift        — fim do jogo
-Constants.swift            — configurações globais
