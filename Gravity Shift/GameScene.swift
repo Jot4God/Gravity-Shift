@@ -7,6 +7,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     private var player = SKShapeNode()
     private var scoreLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
+    private var coinLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
 
     private var score: TimeInterval = 0
     private var lastUpdateTime: TimeInterval = 0
@@ -37,6 +38,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         createBounds()
         createPlayer()
         createScoreLabel()
+        createCoinLabel()
     }
 
     // MARK: - Background
@@ -132,8 +134,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     private func createPlayer() {
         player = SKShapeNode(circleOfRadius: playerRadius)
-        player.fillColor = .cyan
-        player.strokeColor = .white
+
+        let selectedSkin = PlayerSkinStore.shared.selectedSkin
+
+        player.fillColor = selectedSkin.fillColor
+        player.strokeColor = selectedSkin.strokeColor
         player.lineWidth = 4
         player.glowWidth = 8
         player.zPosition = 20
@@ -145,23 +150,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.physicsBody?.affectedByGravity = true
         player.physicsBody?.allowsRotation = false
 
-        // Remove o salto quando bate no chão/teto.
         player.physicsBody?.restitution = 0
         player.physicsBody?.friction = 1
         player.physicsBody?.linearDamping = 0
         player.physicsBody?.angularDamping = 1
-
-        // Ajuda a colisão a ser mais precisa.
         player.physicsBody?.usesPreciseCollisionDetection = true
 
         player.physicsBody?.categoryBitMask = PhysicsCategory.player
-        player.physicsBody?.contactTestBitMask = PhysicsCategory.ground | PhysicsCategory.obstacle
+        player.physicsBody?.contactTestBitMask = PhysicsCategory.ground | PhysicsCategory.obstacle | PhysicsCategory.coin
         player.physicsBody?.collisionBitMask = PhysicsCategory.ground | PhysicsCategory.obstacle
 
         addChild(player)
     }
 
-    // MARK: - Score
+    // MARK: - UI
 
     private func createScoreLabel() {
         scoreLabel.text = "Score: 0"
@@ -170,6 +172,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         scoreLabel.position = CGPoint(x: size.width / 2, y: size.height - 60)
         scoreLabel.zPosition = 50
         addChild(scoreLabel)
+    }
+
+    private func createCoinLabel() {
+        coinLabel.text = "Coins: \(Coins.shared.balance)"
+        coinLabel.fontSize = 20
+        coinLabel.fontColor = .yellow
+        coinLabel.horizontalAlignmentMode = .left
+        coinLabel.position = CGPoint(x: 24, y: size.height - 60)
+        coinLabel.zPosition = 50
+        addChild(coinLabel)
+    }
+
+    private func updateCoinLabel() {
+        coinLabel.text = "Coins: \(Coins.shared.balance)"
     }
 
     // MARK: - Input
@@ -283,6 +299,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         addChild(obstacle)
 
+        if Int.random(in: 1...100) <= 45 {
+            spawnCoin(
+                oppositeToBottomObstacle: spawnFromBottom,
+                afterObstacleWidth: obstacleWidth
+            )
+        }
+
         let distance = size.width + obstacleWidth + 100
         let duration = TimeInterval(distance / obstacleSpeed)
 
@@ -318,10 +341,103 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         return chosenSide
     }
 
+    // MARK: - Coins
+
+    private func spawnCoin(oppositeToBottomObstacle obstacleFromBottom: Bool, afterObstacleWidth obstacleWidth: CGFloat) {
+        let coinRadius: CGFloat = 10
+
+        let coin = SKShapeNode(circleOfRadius: coinRadius)
+        coin.name = "coin"
+        coin.fillColor = .yellow
+        coin.zPosition = 18
+
+        let coinFromBottom = !obstacleFromBottom
+
+        let coinY: CGFloat
+
+        if coinFromBottom {
+            coinY = boundaryThickness + playerRadius
+        } else {
+            coinY = size.height - boundaryThickness - playerRadius
+        }
+
+        coin.position = CGPoint(
+            x: size.width + obstacleWidth + 170,
+            y: coinY
+        )
+
+        coin.physicsBody = SKPhysicsBody(circleOfRadius: coinRadius)
+        coin.physicsBody?.isDynamic = false
+        coin.physicsBody?.categoryBitMask = PhysicsCategory.coin
+        coin.physicsBody?.contactTestBitMask = PhysicsCategory.player
+        coin.physicsBody?.collisionBitMask = PhysicsCategory.none
+
+        addChild(coin)
+
+        let distance = size.width + obstacleWidth + 230
+        let duration = TimeInterval(distance / obstacleSpeed)
+
+        let move = SKAction.moveBy(x: -distance, y: 0, duration: duration)
+        let remove = SKAction.removeFromParent()
+
+        coin.run(SKAction.sequence([move, remove]))
+    }
+
+    private func collectCoin(_ contact: SKPhysicsContact) {
+        let bodyA = contact.bodyA
+        let bodyB = contact.bodyB
+
+        let coinNode: SKNode?
+
+        if bodyA.categoryBitMask == PhysicsCategory.coin {
+            coinNode = bodyA.node
+        } else if bodyB.categoryBitMask == PhysicsCategory.coin {
+            coinNode = bodyB.node
+        } else {
+            coinNode = nil
+        }
+
+        guard let coin = coinNode else { return }
+
+        let coinPosition = coin.position
+
+        coin.physicsBody = nil
+        coin.removeFromParent()
+
+        Coins.shared.add(amount: 1)
+        updateCoinLabel()
+
+        showCoinCollectEffect(at: coinPosition)
+    }
+
+    private func showCoinCollectEffect(at position: CGPoint) {
+        let text = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        text.text = "+1"
+        text.fontSize = 18
+        text.fontColor = .yellow
+        text.position = position
+        text.zPosition = 80
+        addChild(text)
+
+        let moveUp = SKAction.moveBy(x: 0, y: 28, duration: 0.35)
+        let fade = SKAction.fadeOut(withDuration: 0.35)
+        let remove = SKAction.removeFromParent()
+
+        text.run(SKAction.sequence([
+            SKAction.group([moveUp, fade]),
+            remove
+        ]))
+    }
+
     // MARK: - Contacts
 
     func didBegin(_ contact: SKPhysicsContact) {
         let collision = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+
+        if collision == (PhysicsCategory.player | PhysicsCategory.coin) {
+            collectCoin(contact)
+            return
+        }
 
         if collision == (PhysicsCategory.player | PhysicsCategory.obstacle) {
             handleObstacleCollision(contact)
@@ -395,6 +511,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         enumerateChildNodes(withName: "obstacle") { node, _ in
             node.removeAllActions()
             node.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
+        }
+
+        enumerateChildNodes(withName: "coin") { node, _ in
+            node.removeAllActions()
+            node.physicsBody = nil
         }
 
         flashScreen()

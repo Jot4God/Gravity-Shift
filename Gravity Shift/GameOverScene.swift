@@ -3,7 +3,9 @@ import SpriteKit
 class GameOverScene: SKScene {
 
     private let finalScore: Int
+
     private var restartButton = SKShapeNode()
+    private var menuButton = SKShapeNode()
 
     private var highScore = 0
     private var isNewHighScore = false
@@ -25,8 +27,9 @@ class GameOverScene: SKScene {
 
         createStars()
         createTitle()
-        createScoreBoxes()
+        createScores()
         createRestartButton()
+        createMenuButton()
     }
 
     private func updateHighScore() {
@@ -62,7 +65,7 @@ class GameOverScene: SKScene {
     private func createTitle() {
         let titleLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
         titleLabel.text = "GAME OVER"
-        titleLabel.fontSize = 42
+        titleLabel.fontSize = 43
         titleLabel.fontColor = .white
         titleLabel.horizontalAlignmentMode = .center
         titleLabel.verticalAlignmentMode = .center
@@ -73,7 +76,7 @@ class GameOverScene: SKScene {
         let subtitleLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
         subtitleLabel.text = isNewHighScore ? "NEW BEST!" : "GRAVITY SHIFT"
         subtitleLabel.fontSize = 24
-        subtitleLabel.fontColor = isNewHighScore ? .cyan : .cyan
+        subtitleLabel.fontColor = .cyan
         subtitleLabel.horizontalAlignmentMode = .center
         subtitleLabel.verticalAlignmentMode = .center
         subtitleLabel.position = CGPoint(x: size.width * 0.28, y: size.height * 0.40)
@@ -81,80 +84,121 @@ class GameOverScene: SKScene {
         addChild(subtitleLabel)
     }
 
-    private func createScoreBoxes() {
-        let scoreBoxPosition = CGPoint(x: size.width * 0.63, y: size.height * 0.58)
-        let bestBoxPosition = CGPoint(x: size.width * 0.82, y: size.height * 0.58)
-
-        createScoreBox(
+    private func createScores() {
+        createScoreText(
             title: "SCORE",
             value: "\(finalScore)",
-            position: scoreBoxPosition
+            valueColor: .cyan,
+            position: CGPoint(x: size.width * 0.62, y: size.height * 0.61)
         )
 
-        createScoreBox(
+        createScoreText(
             title: "BEST",
             value: "\(highScore)",
-            position: bestBoxPosition
+            valueColor: .yellow,
+            position: CGPoint(x: size.width * 0.82, y: size.height * 0.61)
         )
     }
 
-    private func createScoreBox(title: String, value: String, position: CGPoint) {
-        let box = SKShapeNode(rectOf: CGSize(width: 130, height: 88), cornerRadius: 16)
-        box.fillColor = SKColor(red: 0.06, green: 0.06, blue: 0.12, alpha: 0.95)
-        box.strokeColor = .cyan
-        box.lineWidth = 2
-        box.glowWidth = 4
-        box.position = position
-        box.zPosition = 10
-        addChild(box)
-
+    private func createScoreText(title: String, value: String, valueColor: SKColor, position: CGPoint) {
         let titleLabel = SKLabelNode(fontNamed: "AvenirNext-Regular")
         titleLabel.text = title
-        titleLabel.fontSize = 15
+        titleLabel.fontSize = 16
         titleLabel.fontColor = .gray
         titleLabel.horizontalAlignmentMode = .center
         titleLabel.verticalAlignmentMode = .center
-        titleLabel.position = CGPoint(x: 0, y: 22)
-        titleLabel.zPosition = 11
-        box.addChild(titleLabel)
+        titleLabel.position = CGPoint(x: position.x, y: position.y + 36)
+        titleLabel.zPosition = 10
+        addChild(titleLabel)
 
         let valueLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
         valueLabel.text = value
-        valueLabel.fontSize = 32
-        valueLabel.fontColor = .cyan
+        valueLabel.fontSize = 40
+        valueLabel.fontColor = valueColor
         valueLabel.horizontalAlignmentMode = .center
         valueLabel.verticalAlignmentMode = .center
-        valueLabel.position = CGPoint(x: 0, y: -16)
-        valueLabel.zPosition = 11
-        box.addChild(valueLabel)
+        valueLabel.position = position
+        valueLabel.zPosition = 10
+        addChild(valueLabel)
     }
 
     private func createRestartButton() {
-        restartButton = SKShapeNode(rectOf: CGSize(width: 210, height: 58), cornerRadius: 18)
-        restartButton.fillColor = .cyan
-        restartButton.strokeColor = .white
-        restartButton.lineWidth = 3
-        restartButton.glowWidth = 6
-        restartButton.position = CGPoint(x: size.width * 0.725, y: size.height * 0.30)
-        restartButton.zPosition = 10
+        restartButton = createButton(
+            text: "REINICIAR",
+            position: CGPoint(x: size.width * 0.62, y: size.height * 0.31),
+            fillColor: .cyan,
+            strokeColor: .white,
+            textColor: .black,
+            name: "restartButton"
+        )
+
         addChild(restartButton)
+        addPulse(to: restartButton)
+    }
 
-        let restartLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        restartLabel.text = "REINICIAR"
-        restartLabel.fontSize = 24
-        restartLabel.fontColor = .black
-        restartLabel.verticalAlignmentMode = .center
-        restartLabel.horizontalAlignmentMode = .center
-        restartLabel.position = CGPoint.zero
-        restartLabel.zPosition = 11
-        restartButton.addChild(restartLabel)
+    private func createMenuButton() {
+        menuButton = createButton(
+            text: "MENU",
+            position: CGPoint(x: size.width * 0.82, y: size.height * 0.31),
+            fillColor: SKColor(red: 0.06, green: 0.06, blue: 0.12, alpha: 0.95),
+            strokeColor: .cyan,
+            textColor: .cyan,
+            name: "menuButton"
+        )
 
-        let scaleUp = SKAction.scale(to: 1.05, duration: 0.65)
+        addChild(menuButton)
+        addPulse(to: menuButton)
+    }
+
+    private func createButton(
+        text: String,
+        position: CGPoint,
+        fillColor: SKColor,
+        strokeColor: SKColor,
+        textColor: SKColor,
+        name: String
+    ) -> SKShapeNode {
+        let button = SKShapeNode(rectOf: CGSize(width: 160, height: 54), cornerRadius: 16)
+        button.name = name
+        button.fillColor = fillColor
+        button.strokeColor = strokeColor
+        button.lineWidth = 3
+        button.glowWidth = 6
+        button.position = position
+        button.zPosition = 10
+
+        let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        label.text = text
+        label.fontSize = 20
+        label.fontColor = textColor
+        label.verticalAlignmentMode = .center
+        label.horizontalAlignmentMode = .center
+        label.position = CGPoint.zero
+        label.zPosition = 11
+        button.addChild(label)
+
+        return button
+    }
+
+    private func addPulse(to button: SKShapeNode) {
+        let scaleUp = SKAction.scale(to: 1.04, duration: 0.65)
         let scaleDown = SKAction.scale(to: 1.0, duration: 0.65)
-        restartButton.run(SKAction.repeatForever(SKAction.sequence([scaleUp, scaleDown])))
+        button.run(SKAction.repeatForever(SKAction.sequence([scaleUp, scaleDown])))
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+
+        let location = touch.location(in: self)
+
+        if restartButton.contains(location) {
+            restartGame()
+        } else if menuButton.contains(location) {
+            goToMenu()
+        }
+    }
+
+    private func restartGame() {
         restartButton.removeAllActions()
 
         let pressDown = SKAction.scale(to: 0.92, duration: 0.08)
@@ -170,5 +214,23 @@ class GameOverScene: SKScene {
         }
 
         restartButton.run(SKAction.sequence([pressDown, pressUp, restart]))
+    }
+
+    private func goToMenu() {
+        menuButton.removeAllActions()
+
+        let pressDown = SKAction.scale(to: 0.92, duration: 0.08)
+        let pressUp = SKAction.scale(to: 1.0, duration: 0.08)
+        let menu = SKAction.run { [weak self] in
+            guard let self = self else { return }
+
+            let menuScene = MenuScene(size: self.size)
+            menuScene.scaleMode = .resizeFill
+
+            let transition = SKTransition.fade(withDuration: 0.4)
+            self.view?.presentScene(menuScene, transition: transition)
+        }
+
+        menuButton.run(SKAction.sequence([pressDown, pressUp, menu]))
     }
 }
