@@ -1,37 +1,51 @@
 import SpriteKit
 
+// Cena principal do jogo onde a ação acontece.
+// Herda de SKScene e adota o protocolo SKPhysicsContactDelegate para detetar colisões (ex: jogador bateu num obstáculo).
 class GameScene: SKScene, SKPhysicsContactDelegate {
 
+    // Constantes de tamanho para o jogador e os limites do ecrã
     private let playerRadius: CGFloat = 18
     private let boundaryThickness: CGFloat = 16
 
+    // Elementos visuais principais
     private var player = SKShapeNode()
     private var scoreLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
     private var coinLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
 
+    // Variáveis para controlar a pontuação e o tempo
     private var score: TimeInterval = 0
     private var lastUpdateTime: TimeInterval = 0
     private var obstacleTimer: TimeInterval = 0
 
+    // Variáveis que definem a dificuldade (velocidade e frequência dos obstáculos)
     private var obstacleInterval: TimeInterval = 1.6
     private var obstacleSpeed: CGFloat = 240
     
+    // Controlo de lógica para evitar que os obstáculos apareçam sempre do mesmo lado
     private var lastObstacleFromBottom: Bool?
     private var sameSideObstacleCount = 0
     private var maxSameSideObstacles = 2
 
+    // Estado do jogador e do jogo
     private var gravityIsDown = true
     private var gameEnded = false
 
+    // Controla se o jogador pode mudar a gravidade (só pode se estiver a tocar no chão/teto)
     private var canInvertGravity = false
     private var surfaceContactCount = 0
 
+    // Método chamado automaticamente quando a cena é apresentada.
+    // Configura o mundo físico, a gravidade e constrói todos os elementos iniciais.
     override func didMove(to view: SKView) {
         backgroundColor = SKColor(red: 0.03, green: 0.03, blue: 0.08, alpha: 1)
 
+        // Desativa múltiplos toques em simultâneo para evitar bugs de gravidade
         view.isMultipleTouchEnabled = false
 
+        // Define a gravidade inicial a puxar para baixo
         physicsWorld.gravity = CGVector(dx: 0, dy: -9.8)
+        // Define esta cena como a delegada para gerir colisões físicas
         physicsWorld.contactDelegate = self
 
         createBackgroundStars()
@@ -43,11 +57,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     // MARK: - Background
 
+    // Cria o efeito de estrelas a passar de fundo em loop (paralaxe)
     private func createBackgroundStars() {
+        // Preenche o ecrã com estrelas iniciais
         for _ in 0..<45 {
             createStar(startX: CGFloat.random(in: 0...size.width))
         }
 
+        // Cria uma ação repetitiva que gera uma nova estrela a cada 0.14 segundos
         let spawnStars = SKAction.repeatForever(
             SKAction.sequence([
                 SKAction.run { [weak self] in
@@ -60,6 +77,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         run(spawnStars, withKey: "stars")
     }
 
+    // Instancia uma estrela individual, dá-lhe uma velocidade aleatória e move-a para a esquerda
     private func createStar(startX: CGFloat?) {
         let radius = CGFloat.random(in: 1...2)
 
@@ -90,7 +108,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     // MARK: - Bounds
 
+    // Cria as barras superior (teto) e inferior (chão) que impedem o jogador de sair do ecrã
     private func createBounds() {
+        // --- CHÃO ---
         let ground = SKSpriteNode(
             color: SKColor(red: 0.08, green: 0.08, blue: 0.14, alpha: 1),
             size: CGSize(width: size.width, height: boundaryThickness)
@@ -101,8 +121,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ground.zPosition = 5
 
         ground.physicsBody = SKPhysicsBody(rectangleOf: ground.size)
-        ground.physicsBody?.isDynamic = false
-        ground.physicsBody?.restitution = 0
+        ground.physicsBody?.isDynamic = false // Estático, não se move com impactos
+        ground.physicsBody?.restitution = 0 // Sem ressalto
         ground.physicsBody?.friction = 1
         ground.physicsBody?.categoryBitMask = PhysicsCategory.ground
         ground.physicsBody?.contactTestBitMask = PhysicsCategory.player
@@ -110,6 +130,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         addChild(ground)
 
+        // --- TETO ---
         let ceiling = SKSpriteNode(
             color: SKColor(red: 0.08, green: 0.08, blue: 0.14, alpha: 1),
             size: CGSize(width: size.width, height: boundaryThickness)
@@ -132,6 +153,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     // MARK: - Player
 
+    // Instancia o nó do jogador, aplica a skin escolhida na loja e configura o seu corpo físico
     private func createPlayer() {
         player = SKShapeNode(circleOfRadius: playerRadius)
 
@@ -145,17 +167,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         player.position = CGPoint(x: size.width * 0.25, y: size.height / 2)
 
+        // Configuração da física do jogador
         player.physicsBody = SKPhysicsBody(circleOfRadius: playerRadius)
         player.physicsBody?.isDynamic = true
         player.physicsBody?.affectedByGravity = true
-        player.physicsBody?.allowsRotation = false
+        player.physicsBody?.allowsRotation = false // Mantém o jogador direito
 
-        player.physicsBody?.restitution = 0
+        player.physicsBody?.restitution = 0 // Não salta quando bate no chão
         player.physicsBody?.friction = 1
         player.physicsBody?.linearDamping = 0
         player.physicsBody?.angularDamping = 1
-        player.physicsBody?.usesPreciseCollisionDetection = true
+        player.physicsBody?.usesPreciseCollisionDetection = true // Evita que atravesse paredes a altas velocidades
 
+        // Máscaras de colisão (define com o que é que o jogador interage)
         player.physicsBody?.categoryBitMask = PhysicsCategory.player
         player.physicsBody?.contactTestBitMask = PhysicsCategory.ground | PhysicsCategory.obstacle | PhysicsCategory.coin
         player.physicsBody?.collisionBitMask = PhysicsCategory.ground | PhysicsCategory.obstacle
@@ -165,6 +189,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     // MARK: - UI
 
+    // Configura o texto da pontuação no topo do ecrã
     private func createScoreLabel() {
         scoreLabel.text = "Score: 0"
         scoreLabel.fontSize = 24
@@ -174,6 +199,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         addChild(scoreLabel)
     }
 
+    // Configura o texto das moedas no canto superior esquerdo
     private func createCoinLabel() {
         coinLabel.text = "Coins: \(Coins.shared.balance)"
         coinLabel.fontSize = 20
@@ -184,12 +210,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         addChild(coinLabel)
     }
 
+    // Atualiza o texto das moedas sempre que uma é apanhada
     private func updateCoinLabel() {
         coinLabel.text = "Coins: \(Coins.shared.balance)"
     }
 
     // MARK: - Input
 
+    // Deteta toques no ecrã. Se o jogo não acabou e o jogador puder mudar a gravidade, inverte-a.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         if gameEnded { return }
 
@@ -201,14 +229,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         invertGravity()
     }
 
+    // Lógica para inverter a gravidade (fazer a "queda" do jogador mudar de sentido)
     private func invertGravity() {
         canInvertGravity = false
         surfaceContactCount = 0
 
-        gravityIsDown.toggle()
+        gravityIsDown.toggle() // Inverte o booleano (true vira false, e vice-versa)
 
+        // Reseta a velocidade atual para que a inversão seja imediata e brusca
         player.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
 
+        // Muda a gravidade do mundo e aplica um pequeno impulso para ajudar o jogador a descolar da parede
         if gravityIsDown {
             physicsWorld.gravity = CGVector(dx: 0, dy: -9.8)
             player.physicsBody?.applyImpulse(CGVector(dx: 0, dy: -10))
@@ -217,10 +248,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             player.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 10))
         }
 
+        // Animação visual de rotação para dar "feeling" ao movimento
         let rotateAction = SKAction.rotate(byAngle: .pi, duration: 0.15)
         player.run(rotateAction)
     }
 
+    // Efeito visual (piscar rápido) se o jogador tentar mudar a gravidade a meio do ar sem estar a tocar em nada
     private func invalidTapFeedback() {
         let fadeOut = SKAction.fadeAlpha(to: 0.45, duration: 0.05)
         let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.08)
@@ -229,6 +262,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     // MARK: - Update
 
+    // O "Game Loop": Esta função é chamada automaticamente a cada frame (idealmente 60 vezes por segundo).
+    // Atualiza pontuação, dificuldade e gere o spawn de obstáculos.
     override func update(_ currentTime: TimeInterval) {
         if gameEnded { return }
 
@@ -236,23 +271,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             lastUpdateTime = currentTime
         }
 
+        // Calcula o tempo que passou desde o último frame
         let deltaTime = min(currentTime - lastUpdateTime, 0.05)
         lastUpdateTime = currentTime
 
+        // Aumenta a pontuação consoante o tempo que o jogador sobrevive
         score += deltaTime
         scoreLabel.text = "Score: \(Int(score))"
 
         obstacleTimer += deltaTime
 
+        // Aumenta a dificuldade do jogo reduzindo o intervalo entre obstáculos, mas fixa um limite mínimo de 0.60s
         let currentInterval = max(0.60, obstacleInterval - score / 35)
 
+        // Se o tempo chegou ao intervalo necessário, cria um obstáculo
         if obstacleTimer >= currentInterval {
             spawnObstacle()
             obstacleTimer = 0
         }
 
+        // Aumenta gradualmente a velocidade dos obstáculos consoante a pontuação
         obstacleSpeed = min(480, 240 + CGFloat(score) * 5)
 
+        // Força a colagem do jogador ao chão/teto quando já aterrou, para evitar que a física o faça deslizar/tremer
         if canInvertGravity {
             player.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
             snapPlayerToSurface()
@@ -261,6 +302,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     // MARK: - Obstacles
 
+    // Cria um bloco vermelho mortal e fá-lo mover-se da direita para a esquerda
     private func spawnObstacle() {
         let obstacleWidth: CGFloat = CGFloat.random(in: 40...70)
         let obstacleHeight: CGFloat = CGFloat.random(in: 80...160)
@@ -272,6 +314,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         let spawnFromBottom = chooseObstacleSide()
 
+        // Posiciona o obstáculo no chão ou no teto, baseado na lógica
         if spawnFromBottom {
             obstacle.position = CGPoint(
                 x: size.width + obstacleWidth / 2,
@@ -287,6 +330,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         obstacle.name = "obstacle"
         obstacle.zPosition = 15
 
+        // Configuração física do obstáculo (estático, mas interage com o jogador)
         obstacle.physicsBody = SKPhysicsBody(rectangleOf: obstacle.size)
         obstacle.physicsBody?.isDynamic = false
         obstacle.physicsBody?.restitution = 0
@@ -299,6 +343,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         addChild(obstacle)
 
+        // 45% de chance de spawnar também uma moeda logo a seguir ao obstáculo
         if Int.random(in: 1...100) <= 45 {
             spawnCoin(
                 oppositeToBottomObstacle: spawnFromBottom,
@@ -306,6 +351,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             )
         }
 
+        // Calcula a distância que o obstáculo tem de percorrer para sair do ecrã e ser apagado
         let distance = size.width + obstacleWidth + 100
         let duration = TimeInterval(distance / obstacleSpeed)
 
@@ -315,14 +361,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         obstacle.run(SKAction.sequence([moveAction, removeAction]))
     }
     
+    // Lógica inteligente para escolher o lado onde o obstáculo aparece.
+    // Garante que o jogo não é injusto lançando demasiados obstáculos seguidos do mesmo lado.
     private func chooseObstacleSide() -> Bool {
         let chosenSide: Bool
 
         if let lastSide = lastObstacleFromBottom {
             if sameSideObstacleCount >= maxSameSideObstacles {
-                chosenSide = !lastSide
+                chosenSide = !lastSide // Força a mudança de lado
             } else if score > 8 && Int.random(in: 1...100) <= 65 {
-                chosenSide = !lastSide
+                chosenSide = !lastSide // Dá preferência a mudar de lado frequentemente (mais dinâmico)
             } else {
                 chosenSide = Bool.random()
             }
@@ -343,6 +391,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     // MARK: - Coins
 
+    // Gera uma moeda e anima-a da direita para a esquerda, no lado oposto ao obstáculo gerado
     private func spawnCoin(oppositeToBottomObstacle obstacleFromBottom: Bool, afterObstacleWidth obstacleWidth: CGFloat) {
         let coinRadius: CGFloat = 10
 
@@ -355,6 +404,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         let coinY: CGFloat
 
+        // Define se a moeda vai estar encostada em cima ou em baixo
         if coinFromBottom {
             coinY = boundaryThickness + playerRadius
         } else {
@@ -362,10 +412,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
 
         coin.position = CGPoint(
-            x: size.width + obstacleWidth + 170,
+            x: size.width + obstacleWidth + 170, // Espaço extra para o jogador conseguir reagir
             y: coinY
         )
 
+        // Configuração física da moeda (é "atravessável", não empurra o jogador)
         coin.physicsBody = SKPhysicsBody(circleOfRadius: coinRadius)
         coin.physicsBody?.isDynamic = false
         coin.physicsBody?.categoryBitMask = PhysicsCategory.coin
@@ -383,10 +434,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         coin.run(SKAction.sequence([move, remove]))
     }
 
+    // Função chamada quando a física deteta uma colisão entre o jogador e a moeda
     private func collectCoin(_ contact: SKPhysicsContact) {
         let bodyA = contact.bodyA
         let bodyB = contact.bodyB
 
+        // Descobre qual dos dois corpos colididos é a moeda
         let coinNode: SKNode?
 
         if bodyA.categoryBitMask == PhysicsCategory.coin {
@@ -401,15 +454,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         let coinPosition = coin.position
 
+        // Remove a física e o nó do ecrã imediatamente
         coin.physicsBody = nil
         coin.removeFromParent()
 
+        // Atualiza a loja e a UI
         Coins.shared.add(amount: 1)
         updateCoinLabel()
 
         showCoinCollectEffect(at: coinPosition)
     }
 
+    // Mostra um pequeno texto "+1" amarelo que sobe e desaparece no local onde a moeda estava
     private func showCoinCollectEffect(at position: CGPoint) {
         let text = SKLabelNode(fontNamed: "AvenirNext-Bold")
         text.text = "+1"
@@ -431,19 +487,23 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     // MARK: - Contacts
 
+    // Função delegada disparada SEMPRE que dois objetos físicos (com contactTestBitMask definido) começam a tocar-se
     func didBegin(_ contact: SKPhysicsContact) {
         let collision = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
 
+        // Jogador tocou numa moeda
         if collision == (PhysicsCategory.player | PhysicsCategory.coin) {
             collectCoin(contact)
             return
         }
 
+        // Jogador tocou num obstáculo (GAME OVER)
         if collision == (PhysicsCategory.player | PhysicsCategory.obstacle) {
             handleObstacleCollision(contact)
             return
         }
 
+        // Jogador tocou no chão ou no teto (Pode inverte gravidade novamente)
         if collision == (PhysicsCategory.player | PhysicsCategory.ground) {
             surfaceContactCount += 1
             canInvertGravity = true
@@ -453,9 +513,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
     }
 
+    // Função delegada disparada quando dois objetos deixam de se tocar
     func didEnd(_ contact: SKPhysicsContact) {
         let collision = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
 
+        // Se o jogador descolou do chão/teto, deixa de poder mudar a gravidade
         if collision == (PhysicsCategory.player | PhysicsCategory.ground) {
             surfaceContactCount = max(0, surfaceContactCount - 1)
 
@@ -465,6 +527,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
     }
 
+    // Processa a colisão mortal. Prende o jogador ao lado esquerdo do bloco para parecer que bateu contra ele
     private func handleObstacleCollision(_ contact: SKPhysicsContact) {
         let bodyA = contact.bodyA
         let bodyB = contact.bodyB
@@ -486,6 +549,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         endGame()
     }
 
+    // Força a posição Y do jogador a ficar perfeitamente alinhada com a superfície.
+    // Evita um bug visual do SpriteKit onde o jogador pode "entrar" uns pixels no chão.
     private func snapPlayerToSurface() {
         if gravityIsDown {
             player.position.y = boundaryThickness + playerRadius
@@ -496,23 +561,26 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     // MARK: - Game Over
 
+    // Função chamada quando o jogador morre. Congela tudo e muda para a cena final.
     private func endGame() {
         if gameEnded { return }
 
         gameEnded = true
         canInvertGravity = false
 
+        // Para as físicas
         physicsWorld.gravity = CGVector(dx: 0, dy: 0)
-
         player.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
         player.physicsBody?.affectedByGravity = false
-        player.removeAllActions()
+        player.removeAllActions() // Para animações
 
+        // Congela todos os obstáculos no sítio onde estão
         enumerateChildNodes(withName: "obstacle") { node, _ in
             node.removeAllActions()
             node.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
         }
 
+        // Para e desativa as moedas do ecrã
         enumerateChildNodes(withName: "coin") { node, _ in
             node.removeAllActions()
             node.physicsBody = nil
@@ -520,6 +588,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         flashScreen()
 
+        // Aguarda um curto momento e transita suavemente para a GameOverScene
         let wait = SKAction.wait(forDuration: 0.35)
         let goToGameOver = SKAction.run { [weak self] in
             guard let self = self else { return }
@@ -534,6 +603,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         run(SKAction.sequence([wait, goToGameOver]))
     }
 
+    // Efeito de flash vermelho no ecrã para indicar ao utilizador que bateu num obstáculo
     private func flashScreen() {
         let flash = SKSpriteNode(
             color: SKColor(red: 0.95, green: 0.12, blue: 0.35, alpha: 1),

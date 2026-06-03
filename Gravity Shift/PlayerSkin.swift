@@ -1,5 +1,6 @@
 import SpriteKit
 
+// Define as skins disponíveis, os seus preços e as respetivas propriedades visuais.
 enum PlayerSkin: String, CaseIterable {
     case cyan
     case purple
@@ -43,6 +44,7 @@ enum PlayerSkin: String, CaseIterable {
     }
 }
 
+// Gestor da loja que guarda a skin selecionada e as compras nos UserDefaults.
 final class PlayerSkinStore {
 
     static let shared = PlayerSkinStore()

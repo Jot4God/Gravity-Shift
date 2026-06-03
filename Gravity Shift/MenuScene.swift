@@ -1,5 +1,6 @@
 import SpriteKit
 
+// Cena do menu principal do jogo, onde o jogador pode iniciar a partida ou abrir a loja de skins.
 class MenuScene: SKScene {
 
     private var startButton = SKShapeNode()
@@ -8,6 +9,8 @@ class MenuScene: SKScene {
     private var coinsValueLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
     private var shopPanel: SKNode?
 
+    // Método chamado automaticamente assim que a cena é apresentada.
+    // Define a cor de fundo e chama as funções que constroem a interface.
     override func didMove(to view: SKView) {
         backgroundColor = SKColor(red: 0.03, green: 0.03, blue: 0.08, alpha: 1)
 
@@ -18,6 +21,7 @@ class MenuScene: SKScene {
         createPlayerButton()
     }
 
+    // Cria um ciclo infinito (loop) que gera estrelas de fundo a cada 0.08 segundos.
     private func createBackgroundStars() {
         let spawnStars = SKAction.repeatForever(
             SKAction.sequence([
@@ -31,6 +35,8 @@ class MenuScene: SKScene {
         run(spawnStars)
     }
 
+    // Instancia uma única estrela no lado direito do ecrã com tamanho e opacidade aleatórios,
+    // e anima-a a mover-se para o lado esquerdo em velocidades variadas, removendo-a no fim.
     private func spawnStar() {
         let radius = CGFloat.random(in: 1...3)
 
@@ -57,6 +63,7 @@ class MenuScene: SKScene {
         star.run(SKAction.sequence([move, remove]))
     }
 
+    // Cria os textos do título ("GRAVITY SHIFT") e aplica-lhes uma animação de flutuação.
     private func createTitle() {
         let gravityLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
         gravityLabel.text = "GRAVITY"
@@ -86,6 +93,7 @@ class MenuScene: SKScene {
         shiftLabel.run(floating)
     }
 
+    // Obtém o recorde de pontuação e exibe-o no ecrã, bem como o número total de moedas do jogador.
     private func createStats() {
         let highScore = UserDefaults.standard.integer(forKey: "HighScore")
 
@@ -129,6 +137,7 @@ class MenuScene: SKScene {
         addChild(coinsValueLabel)
     }
 
+    // Instancia o botão principal de iniciar o jogo ("JOGAR") com a respetiva animação.
     private func createStartButton() {
         startButton = createMenuButton(
             text: "JOGAR",
@@ -143,6 +152,7 @@ class MenuScene: SKScene {
         addPulse(to: startButton)
     }
 
+    // Instancia o botão da loja de skins ("PLAYER") com a respetiva animação.
     private func createPlayerButton() {
         playerButton = createMenuButton(
             text: "PLAYER",
@@ -157,6 +167,7 @@ class MenuScene: SKScene {
         addPulse(to: playerButton)
     }
 
+    // Função auxiliar genérica para construir botões, definindo tamanho, cores e textos baseados nos parâmetros passados.
     private func createMenuButton(
         text: String,
         position: CGPoint,
@@ -187,12 +198,14 @@ class MenuScene: SKScene {
         return button
     }
 
+    // Cria e aplica uma animação contínua para fazer um botão aumentar e diminuir levemente (pulsar).
     private func addPulse(to button: SKShapeNode) {
         let scaleUp = SKAction.scale(to: 1.04, duration: 0.65)
         let scaleDown = SKAction.scale(to: 1.0, duration: 0.65)
         button.run(SKAction.repeatForever(SKAction.sequence([scaleUp, scaleDown])))
     }
 
+    // Faz a transição da cena do menu atual para a cena de jogo (GameScene).
     private func startGame() {
         let gameScene = GameScene(size: size)
         gameScene.scaleMode = .resizeFill
@@ -203,6 +216,7 @@ class MenuScene: SKScene {
 
     // MARK: - Player Shop
 
+    // Constrói e mostra o painel flutuante da loja de skins, com o fundo escurecido e os elementos da UI.
     private func openPlayerShop() {
         if shopPanel != nil { return }
 
@@ -274,13 +288,14 @@ class MenuScene: SKScene {
         createSkinOption(for: .gold, x: size.width * 0.22, parent: panel)
     }
 
+    // Desenha uma opção individual de skin dentro da loja, exibindo se está equipada, disponível para uso ou o seu preço.
     private func createSkinOption(for skin: PlayerSkin, x: CGFloat, parent: SKNode) {
         let selectedSkin = PlayerSkinStore.shared.selectedSkin
         let unlocked = PlayerSkinStore.shared.isUnlocked(skin)
 
         let tapArea = SKShapeNode(rectOf: CGSize(width: 135, height: 125), cornerRadius: 20)
         tapArea.name = "skin_\(skin.rawValue)"
-        tapArea.fillColor = SKColor.white.withAlphaComponent(0.001)
+        tapArea.fillColor = SKColor.white.withAlphaComponent(0.001) // Invisível, mas interativo ao toque
         tapArea.strokeColor = .clear
         tapArea.lineWidth = 0
         tapArea.position = CGPoint(x: x, y: -size.height * 0.05)
@@ -338,11 +353,13 @@ class MenuScene: SKScene {
         tapArea.addChild(stateLabel)
     }
 
+    // Remove todos os elementos visuais do painel da loja do ecrã e limpa a variável de referência.
     private func closePlayerShop() {
         shopPanel?.removeFromParent()
         shopPanel = nil
     }
 
+    // Processa a tentativa de selecionar/comprar uma skin. Atualiza o ecrã recarregando a loja após a ação.
     private func handleSkinTap(_ skin: PlayerSkin) {
         if PlayerSkinStore.shared.isUnlocked(skin) {
             PlayerSkinStore.shared.select(skin)
@@ -358,6 +375,8 @@ class MenuScene: SKScene {
 
     // MARK: - Touches
 
+    // Lida com todas as interações de toque no ecrã e encaminha-as de acordo com o botão clicado
+    // (comprar/selecionar skin, fechar loja, iniciar jogo ou abrir loja).
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
 
@@ -366,6 +385,7 @@ class MenuScene: SKScene {
 
         guard let touchedName = getActionName(from: touchedNode) else { return }
 
+        // Lógica se o painel da loja estiver aberto
         if shopPanel != nil {
             if touchedName == "closeShop" {
                 closePlayerShop()
@@ -385,6 +405,7 @@ class MenuScene: SKScene {
             return
         }
 
+        // Lógica se o utilizador clicar no botão "JOGAR"
         if touchedName == "startButton" {
             startButton.removeAllActions()
 
@@ -397,11 +418,14 @@ class MenuScene: SKScene {
             startButton.run(SKAction.sequence([pressDown, pressUp, start]))
         }
 
+        // Lógica se o utilizador clicar no botão da loja
         if touchedName == "playerButton" {
             openPlayerShop()
         }
     }
 
+    // Função de utilidade que sobe a árvore de nós a partir do elemento tocado para encontrar o nome do botão correspondente.
+    // Garante que mesmo clicando num label dentro do botão, o nome do botão principal é registado.
     private func getActionName(from node: SKNode) -> String? {
         var currentNode: SKNode? = node
 

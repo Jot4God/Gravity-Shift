@@ -1,5 +1,6 @@
 import SpriteKit
 
+// Cena de Game Over que exibe a pontuação final, recorde e botões de ação.
 class GameOverScene: SKScene {
 
     private let finalScore: Int
@@ -10,16 +11,20 @@ class GameOverScene: SKScene {
     private var highScore = 0
     private var isNewHighScore = false
 
+    // Inicializador principal da cena, recebendo a pontuação final da partida.
     init(size: CGSize, finalScore: Int) {
         self.finalScore = finalScore
         super.init(size: size)
     }
 
+    // Inicializador obrigatório exigido pelo SpriteKit (usado caso a cena fosse carregada via interface builder/storyboard).
     required init?(coder aDecoder: NSCoder) {
         self.finalScore = 0
         super.init(coder: aDecoder)
     }
 
+    // Método chamado automaticamente assim que a cena é apresentada no ecrã.
+    // É aqui que montamos todo o visual e a interface.
     override func didMove(to view: SKView) {
         backgroundColor = SKColor(red: 0.03, green: 0.03, blue: 0.08, alpha: 1)
 
@@ -32,6 +37,8 @@ class GameOverScene: SKScene {
         createMenuButton()
     }
 
+    // Verifica a pontuação final contra o recorde guardado no dispositivo (UserDefaults).
+    // Atualiza o recorde se o jogador tiver feito uma pontuação maior.
     private func updateHighScore() {
         let savedHighScore = UserDefaults.standard.integer(forKey: "HighScore")
 
@@ -45,6 +52,7 @@ class GameOverScene: SKScene {
         }
     }
 
+    // Cria um fundo estrelado gerando vários círculos brancos em posições e tamanhos aleatórios.
     private func createStars() {
         for _ in 0..<35 {
             let star = SKShapeNode(circleOfRadius: CGFloat.random(in: 1...2))
@@ -62,6 +70,7 @@ class GameOverScene: SKScene {
         }
     }
 
+    // Cria e posiciona os textos principais no topo da ecrã (Ex: "GAME OVER" e "NEW BEST!").
     private func createTitle() {
         let titleLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
         titleLabel.text = "GAME OVER"
@@ -84,6 +93,7 @@ class GameOverScene: SKScene {
         addChild(subtitleLabel)
     }
 
+    // Posiciona as etiquetas que vão mostrar a pontuação atual e o recorde máximo do jogador.
     private func createScores() {
         createScoreText(
             title: "SCORE",
@@ -100,6 +110,8 @@ class GameOverScene: SKScene {
         )
     }
 
+    // Função auxiliar para construir os textos de pontuação para evitar repetição de código.
+    // Recebe o título, o valor, a cor e a posição.
     private func createScoreText(title: String, value: String, valueColor: SKColor, position: CGPoint) {
         let titleLabel = SKLabelNode(fontNamed: "AvenirNext-Regular")
         titleLabel.text = title
@@ -122,6 +134,7 @@ class GameOverScene: SKScene {
         addChild(valueLabel)
     }
 
+    // Instancia o botão de "REINICIAR" com o seu visual específico e adiciona a animação de pulsar.
     private func createRestartButton() {
         restartButton = createButton(
             text: "REINICIAR",
@@ -136,6 +149,7 @@ class GameOverScene: SKScene {
         addPulse(to: restartButton)
     }
 
+    // Instancia o botão de "MENU" com o seu visual específico e adiciona a animação de pulsar.
     private func createMenuButton() {
         menuButton = createButton(
             text: "MENU",
@@ -150,6 +164,8 @@ class GameOverScene: SKScene {
         addPulse(to: menuButton)
     }
 
+    // Função auxiliar para construir qualquer botão da cena (SKShapeNode).
+    // Configura o fundo, bordas, brilho, posição e o texto interior.
     private func createButton(
         text: String,
         position: CGPoint,
@@ -180,12 +196,14 @@ class GameOverScene: SKScene {
         return button
     }
 
+    // Cria e aplica uma animação contínua ao botão, fazendo-o aumentar e diminuir de tamanho (pulsar).
     private func addPulse(to button: SKShapeNode) {
         let scaleUp = SKAction.scale(to: 1.04, duration: 0.65)
         let scaleDown = SKAction.scale(to: 1.0, duration: 0.65)
         button.run(SKAction.repeatForever(SKAction.sequence([scaleUp, scaleDown])))
     }
 
+    // Deteta toques no ecrã. Verifica qual botão foi pressionado (Restart ou Menu) e dispara a ação correspondente.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
 
@@ -198,6 +216,8 @@ class GameOverScene: SKScene {
         }
     }
 
+    // Trata o evento de reiniciar o jogo.
+    // Executa uma rápida animação de "click" no botão e faz uma transição de ecrã para a GameScene.
     private func restartGame() {
         restartButton.removeAllActions()
 
@@ -216,6 +236,8 @@ class GameOverScene: SKScene {
         restartButton.run(SKAction.sequence([pressDown, pressUp, restart]))
     }
 
+    // Trata o evento de voltar ao menu.
+    // Executa uma rápida animação de "click" no botão e faz uma transição de ecrã para a MenuScene.
     private func goToMenu() {
         menuButton.removeAllActions()
 

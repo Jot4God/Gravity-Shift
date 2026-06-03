@@ -1,5 +1,6 @@
 import Foundation
 
+// Gere o saldo global de moedas do jogador, guardando o valor localmente no dispositivo.
 final class Coins {
 
     static let shared = Coins()
